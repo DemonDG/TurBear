@@ -1,0 +1,25 @@
+{
+  "name": "turbear",
+  "version": "1.0.0",
+  "description": "\"# TurBear\" 是一个练习的demo，包括活动和教程",
+  "homepage": "https://github.com/DemonDG/TurBear#readme",
+  "bugs": {
+    "url": "https://github.com/DemonDG/TurBear/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DemonDG/TurBear.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "hardhat": "^2.26.5"
+  }
+}
