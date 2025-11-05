@@ -9,7 +9,7 @@ contract BLToken is ERC20, Ownable {
     _mint(recipient, initialSupply);
   }
 
-  function mint100() external onlyOwner {
+  function mint100() external {
     _mint(msg.sender, 100 * 10 ** decimals());
   }
 }

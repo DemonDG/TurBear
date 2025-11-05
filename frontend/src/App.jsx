@@ -144,10 +144,9 @@ export default function App() {
           <div>余额: {balance} {symbol}</div>
           <div>是否 Owner: {isOwner ? '是' : '否'}</div>
           <div style={{ marginTop: 16 }}>
-            <button onClick={onMint} disabled={!isOwner || loading}>
+            <button onClick={onMint} disabled={loading}>
               {loading ? '处理中...' : 'Mint 100 ' + symbol}
             </button>
-            {!isOwner && <div style={{ color: '#c00', marginTop: 8 }}>只有合约 Owner 能增发</div>}
             <div style={{ marginTop: 12 }}>
               <button onClick={disconnect}>断开连接</button>
             </div>
