@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserProvider } from 'ethers';
+import { BrowserProvider, Contract } from 'ethers';
 import { useNavigate } from 'react-router-dom';
+import { NFT_CONTRACT_ADDRESS } from './config';
+import RarityNFTABI from './abi/RarityNFT.json';
 
 export default function NFTMintPage() {
   const navigate = useNavigate();
@@ -10,6 +12,24 @@ export default function NFTMintPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [mintAmount, setMintAmount] = useState('1');
+  const [nftBalance, setNftBalance] = useState(0);
+  const [totalSupply, setTotalSupply] = useState(0);
+  const [imageError, setImageError] = useState(false);
+
+  // 加载NFT数据
+  const loadNFTData = async (signerInstance) => {
+    if (!signerInstance) return;
+    
+    try {
+      const nftContract = new Contract(NFT_CONTRACT_ADDRESS, RarityNFTABI, signerInstance);
+      const balance = await nftContract.balanceOf(await signerInstance.getAddress());
+      const supply = await nftContract.totalSupply();
+      setNftBalance(Number(balance));
+      setTotalSupply(Number(supply));
+    } catch (error) {
+      console.error('加载NFT数据失败:', error);
+    }
+  };
 
   useEffect(() => {
     if (window.ethereum) {
@@ -36,13 +56,22 @@ export default function NFTMintPage() {
           const s = await p.getSigner();
           setSigner(s);
           setAccount(accs[0]);
+          await loadNFTData(s);
         } else {
           setSigner(null);
           setAccount('');
+          setNftBalance(0);
         }
       });
     }
   }, []);
+
+  // 当账户或signer变化时加载数据
+  useEffect(() => {
+    if (signer && account) {
+      loadNFTData(signer);
+    }
+  }, [signer, account]);
 
   const connectWallet = async () => {
     if (!provider) return;
@@ -73,30 +102,43 @@ export default function NFTMintPage() {
     setMessage('');
     
     try {
-      // 这里只是模拟NFT铸造过程
-      // 实际项目中需要连接到NFT合约并调用mint函数
+      // 连接到NFT合约
+      const nftContract = new Contract(NFT_CONTRACT_ADDRESS, RarityNFTABI, signer);
+      const userAddress = await signer.getAddress();
       
-      // 模拟网络请求延迟
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setMessage('正在发送交易...');
       
-      setMessage(`成功铸造 ${amount} 个NFT！`);
+      // 调用mint函数（每次只mint一个）
+      const tx = await nftContract.mint(userAddress);
       
-      // 模拟更新本地存储的NFT数量
-      const currentNFTs = parseInt(localStorage.getItem(`nfts_${account}`) || '0');
-      localStorage.setItem(`nfts_${account}`, (currentNFTs + amount).toString());
+      setMessage('交易已发送，等待确认...');
+      console.log('交易哈希:', tx.hash);
+      
+      // 等待交易确认
+      const receipt = await tx.wait();
+      
+      if (receipt.status === 1) {
+        setMessage(`✅ 成功铸造 NFT！交易哈希: ${tx.hash}`);
+        // 重新加载NFT数据
+        await loadNFTData(signer);
+      } else {
+        setMessage('❌ 交易失败');
+      }
       
     } catch (error) {
-      setMessage('NFT铸造失败');
       console.error('铸造错误:', error);
+      if (error.reason) {
+        setMessage(`❌ 铸造失败: ${error.reason}`);
+      } else if (error.message) {
+        setMessage(`❌ 铸造失败: ${error.message}`);
+      } else {
+        setMessage('❌ NFT铸造失败，请检查网络连接和账户余额');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const getNFTCount = () => {
-    if (!account) return '0';
-    return localStorage.getItem(`nfts_${account}`) || '0';
-  };
 
   return (
     <div style={{
@@ -145,7 +187,8 @@ export default function NFTMintPage() {
         <div>
           <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
             <div style={{ marginBottom: '10px' }}>账户: {account}</div>
-            <div>已持有NFT数量: {getNFTCount()}</div>
+            <div style={{ marginBottom: '10px' }}>已持有NFT数量: {nftBalance}</div>
+            <div>合约总供应量: {totalSupply}</div>
           </div>
           
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -153,38 +196,36 @@ export default function NFTMintPage() {
             <div style={{
               width: '200px',
               height: '200px',
-              backgroundColor: '#e3f2fd',
               borderRadius: '10px',
               margin: '0 auto 20px',
+              overflow: 'hidden',
+              border: '2px solid #1976d2',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '24px',
-              color: '#1976d2'
+              backgroundColor: imageError ? '#e3f2fd' : 'transparent'
             }}>
-              NFT 预览
+              {imageError ? (
+                <div style={{ color: '#1976d2', fontSize: '24px' }}>NFT 预览</div>
+              ) : (
+                <img 
+                  src="/img/1.jpg" 
+                  alt="NFT Preview" 
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={() => setImageError(true)}
+                />
+              )}
             </div>
             
             <h3 style={{ color: '#1976d2', marginBottom: '15px' }}>铸造您的 NFT</h3>
-            
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '5px' }}>铸造数量:</label>
-              <input
-                type="number"
-                value={mintAmount}
-                onChange={(e) => setMintAmount(e.target.value)}
-                min="1"
-                max="10"
-                disabled={loading}
-                style={{
-                  padding: '10px',
-                  width: '100px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  textAlign: 'center'
-                }}
-              />
-            </div>
+            <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
+              每次可以铸造 1 个 NFT
+            </p>
             
             <button
               onClick={handleMint}

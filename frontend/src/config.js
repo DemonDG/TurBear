@@ -1,3 +1,6 @@
 // 将此地址替换为你在 Sepolia 部署的 BLToken 地址
 export const CONTRACT_ADDRESS = "0x9c33A009beA9b2684bDCEc81D28B9B84FAfF03C2";
 
+// NFT合约地址
+export const NFT_CONTRACT_ADDRESS = "0x87Ea837527B0CeB93c2eEe6845a706D140699f2B";
+

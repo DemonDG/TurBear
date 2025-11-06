@@ -13,6 +13,8 @@ const config = {
       url: SEPOLIA_RPC_URL,
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
       chainId: 11155111,
+      timeout: 300000, // 5分钟超时
+      gasPrice: "auto", // 自动gas价格
     },
   },
 };
