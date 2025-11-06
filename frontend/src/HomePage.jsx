@@ -12,6 +12,10 @@ export default function HomePage() {
     navigate('/defi');
   };
 
+  const handleNFTClick = () => {
+    navigate('/nft');
+  };
+
   return (
     <div style={{
       maxWidth: 600,
@@ -62,6 +66,25 @@ export default function HomePage() {
           onMouseLeave={(e) => e.target.style.backgroundColor = '#2196F3'}
         >
           进入 DeFi 项目
+        </button>
+        
+        <button
+          onClick={handleNFTClick}
+          style={{
+            padding: '15px 40px',
+            fontSize: '18px',
+            backgroundColor: '#e91e63',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            width: '300px',
+            transition: 'background-color 0.3s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#c2185b'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#e91e63'}
+        >
+          铸造 NFT
         </button>
       </div>
     </div>

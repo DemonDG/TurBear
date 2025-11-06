@@ -12,9 +12,7 @@ export default function DeFi() {
   const [contract, setContract] = useState(null);
   const [balance, setBalance] = useState('0');
   const [depositAmount, setDepositAmount] = useState('');
-  const [borrowAmount, setBorrowAmount] = useState('');
   const [depositedBalance, setDepositedBalance] = useState('0');
-  const [borrowableAmount, setBorrowableAmount] = useState('0');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -79,10 +77,9 @@ export default function DeFi() {
     try {
       const bal = await contract.balanceOf(account);
       setBalance((bal / 10**18).toString());
-      // 模拟计算可借额度（这里假设存款是抵押品，可以借存款的50%）
+      // 获取本地存储的存款余额
       const deposited = parseFloat(localStorage.getItem(`deposited_${account}`) || '0');
       setDepositedBalance(deposited.toString());
-      setBorrowableAmount((deposited * 0.5).toString());
     } catch (error) {
       console.error('加载余额失败:', error);
     }
@@ -97,7 +94,7 @@ export default function DeFi() {
     setLoading(true);
     setMessage('');
     try {
-      // 这里只是模拟存款，实际项目中需要调用合约的存款方法
+      // 模拟存款操作
       const amount = parseFloat(depositAmount);
       const currentBalance = parseFloat(balance);
       
@@ -105,9 +102,6 @@ export default function DeFi() {
         setMessage('余额不足');
         return;
       }
-      
-      // 模拟转账
-      // 实际项目中应该调用合约的approve和deposit方法
       
       // 模拟更新本地存款余额
       const currentDeposited = parseFloat(localStorage.getItem(`deposited_${account}`) || '0');
@@ -125,41 +119,6 @@ export default function DeFi() {
     }
   };
 
-  const handleBorrow = async () => {
-    if (!contract || !borrowAmount || parseFloat(borrowAmount) <= 0) {
-      setMessage('请输入有效的借款金额');
-      return;
-    }
-
-    setLoading(true);
-    setMessage('');
-    try {
-      const amount = parseFloat(borrowAmount);
-      const borrowable = parseFloat(borrowableAmount);
-      
-      if (amount > borrowable) {
-        setMessage('借款金额超过可借额度');
-        return;
-      }
-      
-      // 模拟借款
-      // 实际项目中应该调用合约的借款方法
-      
-      // 记录借款金额
-      const currentBorrowed = parseFloat(localStorage.getItem(`borrowed_${account}`) || '0');
-      const newBorrowed = currentBorrowed + amount;
-      localStorage.setItem(`borrowed_${account}`, newBorrowed.toString());
-      
-      setMessage('借款成功');
-      setBorrowAmount('');
-    } catch (error) {
-      setMessage('借款失败');
-      console.error('借款错误:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleWithdraw = async () => {
     if (!contract || !depositAmount || parseFloat(depositAmount) <= 0) {
       setMessage('请输入有效的提款金额');
@@ -171,22 +130,13 @@ export default function DeFi() {
     try {
       const amount = parseFloat(depositAmount);
       const currentDeposited = parseFloat(localStorage.getItem(`deposited_${account}`) || '0');
-      const currentBorrowed = parseFloat(localStorage.getItem(`borrowed_${account}`) || '0');
       
       if (amount > currentDeposited) {
         setMessage('提款金额超过存款余额');
         return;
       }
       
-      // 检查是否有未偿还的借款（简化版检查）
-      if (currentBorrowed > 0) {
-        setMessage('请先偿还所有借款');
-        return;
-      }
-      
-      // 模拟提款
-      // 实际项目中应该调用合约的提款方法
-      
+      // 模拟提款操作
       const newDeposited = currentDeposited - amount;
       localStorage.setItem(`deposited_${account}`, newDeposited.toString());
       
@@ -211,7 +161,7 @@ export default function DeFi() {
       boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h1 style={{ color: '#333' }}>DeFi 练习项目</h1>
+        <h1 style={{ color: '#333' }}>简易存钱取钱 Demo</h1>
         <button
           onClick={() => navigate('/')}
           style={{
@@ -249,12 +199,11 @@ export default function DeFi() {
           <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
             <div style={{ marginBottom: '10px' }}>账户: {account}</div>
             <div style={{ marginBottom: '10px' }}>BL 代币余额: {balance} BL</div>
-            <div style={{ marginBottom: '10px' }}>已存款: {depositedBalance} BL</div>
-            <div>可借额度: {borrowableAmount} BL</div>
+            <div>已存款: {depositedBalance} BL</div>
           </div>
           
-          <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ color: '#4CAF50', marginBottom: '15px' }}>存款/提款</h3>
+          <div>
+            <h3 style={{ color: '#4CAF50', marginBottom: '15px' }}>存款/提款操作</h3>
             <input
               type="number"
               placeholder="输入金额"
@@ -284,7 +233,7 @@ export default function DeFi() {
                   cursor: loading ? 'not-allowed' : 'pointer'
                 }}
               >
-                {loading ? '处理中...' : '存款'}
+                {loading ? '处理中...' : '存入'}
               </button>
               <button
                 onClick={handleWithdraw}
@@ -299,43 +248,9 @@ export default function DeFi() {
                   cursor: loading ? 'not-allowed' : 'pointer'
                 }}
               >
-                {loading ? '处理中...' : '提款'}
+                {loading ? '处理中...' : '取出'}
               </button>
             </div>
-          </div>
-          
-          <div>
-            <h3 style={{ color: '#2196F3', marginBottom: '15px' }}>借款</h3>
-            <input
-              type="number"
-              placeholder="输入借款金额"
-              value={borrowAmount}
-              onChange={(e) => setBorrowAmount(e.target.value)}
-              disabled={loading}
-              style={{
-                padding: '10px',
-                width: '100%',
-                marginBottom: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                boxSizing: 'border-box'
-              }}
-            />
-            <button
-              onClick={handleBorrow}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loading ? '处理中...' : '借款'}
-            </button>
           </div>
         </div>
       )}
