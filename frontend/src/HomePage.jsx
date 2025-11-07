@@ -16,6 +16,10 @@ export default function HomePage() {
     navigate('/nft');
   };
 
+  const handleTrackerClick = () => {
+    navigate('/tracker');
+  };
+
   return (
     <div style={{
       maxWidth: 600,
@@ -85,6 +89,25 @@ export default function HomePage() {
           onMouseLeave={(e) => e.target.style.backgroundColor = '#e91e63'}
         >
           铸造 NFT
+        </button>
+
+        <button
+          onClick={handleTrackerClick}
+          style={{
+            padding: '15px 40px',
+            fontSize: '18px',
+            backgroundColor: '#673ab7',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            width: '300px',
+            transition: 'background-color 0.3s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#512da8'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#673ab7'}
+        >
+          追踪币价
         </button>
       </div>
     </div>

@@ -4,6 +4,7 @@ import HomePage from './HomePage';
 import MintPage from './MintPage';
 import DeFi from './DeFi';
 import NFTMintPage from './NFTMintPage';
+import TokenTracker from './TokenTracker';
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/mint" element={<MintPage />} />
         <Route path="/defi" element={<DeFi />} />
         <Route path="/nft" element={<NFTMintPage />} />
+        <Route path="/tracker" element={<TokenTracker />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
