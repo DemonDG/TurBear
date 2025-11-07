@@ -181,298 +181,451 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
   return ( // 渲染页面结构
     <div
       style={{
-        maxWidth: 600, // 将内容区宽度限制在 600px 以内
-        margin: '40px auto', // 设置上下间距并让内容水平居中
-        fontFamily: 'sans-serif', // 使用通用的无衬线字体
-        padding: '20px', // 设置容器内边距
-        borderRadius: '10px', // 添加圆角
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)', // 添加轻微阴影以突出容器
+        minHeight: '100vh', // 设置最小高度为整屏，以便背景铺满
+        padding: '60px 24px', // 为页面内容留出更宽松的上下留白
+        background: 'radial-gradient(circle at 20% 20%, rgba(72, 149, 239, 0.25), transparent 45%), radial-gradient(circle at 80% 0%, rgba(142, 84, 233, 0.30), transparent 46%), linear-gradient(135deg, #090d1a 5%, #101736 48%, #04070f 95%)', // 叠加多个渐变，打造高端背景层次
+        display: 'flex', // 让容器使用 flex 布局
+        justifyContent: 'center', // 让内部卡片水平居中
+        alignItems: 'flex-start', // 顶部对齐，让滚动时更自然
       }}
     >
-      {/* 页面顶部：标题和返回按钮 */}
       <div
         style={{
-          display: 'flex', // 使用 flex 布局
-          alignItems: 'center', // 垂直方向居中
-          justifyContent: 'space-between', // 标题和按钮分列两侧
-          marginBottom: '20px', // 与下方内容保持间距
+          width: '100%',
+          maxWidth: 960,
+          borderRadius: 28,
+          padding: '40px 48px',
+          background: 'rgba(12, 18, 46, 0.78)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: '0 40px 120px rgba(17, 12, 46, 0.55)',
+          backdropFilter: 'blur(24px)',
+          color: '#F6F8FF',
         }}
       >
-        {/* 标题显示当前页面功能 */}
-        <h1 style={{ color: '#333' }}>NFT 铸造页面</h1>
-        {/* 返回首页按钮 */}
-        <button
-          onClick={() => navigate('/')} // 点击时返回首页
-          style={{
-            padding: '8px 16px', // 设置按钮内边距
-            backgroundColor: '#666', // 灰色背景
-            color: 'white', // 白色文字
-            border: 'none', // 移除按钮边框
-            borderRadius: '4px', // 圆角处理
-            cursor: 'pointer', // 鼠标悬停时显示为指针
-          }}
-        >
-          返回首页
-        </button>
-      </div>
-
-      {/* 提示信息区域：成功或失败均在此显示 */}
-      {message && (
+        {/* 页面顶部：标题和返回按钮 */}
         <div
           style={{
-            color: message.includes('成功') ? '#4CAF50' : '#f44336', // 成功用绿色，失败用红色
-            marginBottom: '15px', // 与下方内容留白
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '32px',
           }}
         >
-          {message}
-        </div>
-      )}
-
-      {/* 未连接账户时显示“连接钱包”按钮 */}
-      {!account ? (
-        <button
-          onClick={connectWallet} // 点击弹出钱包授权
-          style={{
-            padding: '12px 30px',
-            fontSize: '16px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
-        >
-          连接钱包
-        </button>
-      ) : (
-        // 已连接账号后展示铸造相关内容
-        <div>
-          {/* 展示当前账号、持有数量、总供应量 */}
-          <div
+          {/* 标题显示当前页面功能 */}
+          <h1
             style={{
-              marginBottom: '20px',
-              padding: '15px',
-              backgroundColor: '#f5f5f5',
-              borderRadius: '6px',
+              fontSize: '32px',
+              fontWeight: 700,
+              letterSpacing: '0.02em',
+              background: 'linear-gradient(90deg, #8ec5ff, #e0b0ff)',
+              WebkitBackgroundClip: 'text',
+              color: 'transparent',
+              margin: 0,
             }}
           >
-            <div style={{ marginBottom: '10px' }}>账户: {account}</div>
-            <div style={{ marginBottom: '10px' }}>已持有NFT数量: {nftBalance}</div>
-            <div>合约总供应量: {totalSupply}</div>
-          </div>
+            NFT 铸造控制台
+          </h1>
+          {/* 返回首页按钮 */}
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              padding: '10px 22px',
+              background: 'linear-gradient(135deg, rgba(87, 120, 247, 0.25), rgba(148, 63, 255, 0.35))',
+              color: '#F6F8FF',
+              border: '1px solid rgba(120, 145, 255, 0.35)',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              letterSpacing: '0.02em',
+              transition: 'all 0.25s ease',
+              boxShadow: '0 10px 24px rgba(94, 84, 242, 0.25)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-3px)';
+              e.currentTarget.style.boxShadow = '0 18px 30px rgba(94, 84, 242, 0.45)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 24px rgba(94, 84, 242, 0.25)';
+            }}
+          >
+            返回首页
+          </button>
+        </div>
 
-          {/* 铸造操作区域 */}
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            {/* NFT 预览图区域 */}
+        {/* 提示信息区域：成功或失败均在此显示 */}
+        {message && (
+          <div
+            style={{
+              padding: '14px 18px',
+              borderRadius: '12px',
+              background: message.includes('成功')
+                ? 'linear-gradient(135deg, rgba(58, 186, 134, 0.28), rgba(28, 160, 90, 0.18))'
+                : 'linear-gradient(135deg, rgba(244, 114, 94, 0.28), rgba(176, 49, 63, 0.18))',
+              border: message.includes('成功')
+                ? '1px solid rgba(107, 229, 183, 0.55)'
+                : '1px solid rgba(244, 125, 101, 0.45)',
+              color: message.includes('成功') ? '#bfffe4' : '#ffd9d2',
+              boxShadow: '0 18px 35px rgba(14, 14, 50, 0.25)',
+              marginBottom: '24px',
+              fontSize: '14px',
+              letterSpacing: '0.02em',
+            }}
+          >
+            {message}
+          </div>
+        )}
+
+        {/* 未连接账户时显示“连接钱包”按钮 */}
+        {!account ? (
+          <button
+            onClick={connectWallet}
+            style={{
+              width: '100%',
+              padding: '18px',
+              fontSize: '18px',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              background: 'linear-gradient(120deg, #6e79ff, #9f63ff, #ff6fb1)',
+              backgroundSize: '200% 200%',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '14px',
+              cursor: 'pointer',
+              boxShadow: '0 25px 45px rgba(122, 89, 255, 0.35)',
+              transition: 'all 0.35s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundPosition = '100% 0%';
+              e.currentTarget.style.boxShadow = '0 28px 55px rgba(122, 89, 255, 0.5)';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundPosition = '0% 100%';
+              e.currentTarget.style.boxShadow = '0 25px 45px rgba(122, 89, 255, 0.35)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            连接钱包即刻开始
+          </button>
+        ) : (
+          // 已连接账号后展示铸造相关内容
+          <div>
+            {/* 展示当前账号、持有数量、总供应量 */}
             <div
               style={{
-                width: '200px',
-                height: '200px',
-                borderRadius: '10px',
-                margin: '0 auto 20px',
-                overflow: 'hidden',
-                border: '2px solid #1976d2',
-                boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: imageError ? '#e3f2fd' : 'transparent',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '18px',
+                marginBottom: '32px',
               }}
             >
-              {imageError ? (
-                // 当预览图加载失败时展示的占位内容
-                <div style={{ color: '#1976d2', fontSize: '24px' }}>NFT 预览</div>
-              ) : (
-                // 默认展示 1.jpg 作为示意图
-                <img
-                  src='/img/1.jpg'
-                  alt='NFT Preview'
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                  onError={() => setImageError(true)} // 加载失败时设置 imageError
-                />
-              )}
-            </div>
-
-            {/* 铸造说明文字 */}
-            <h3 style={{ color: '#1976d2', marginBottom: '15px' }}>铸造您的 NFT</h3>
-            <p style={{ color: '#666', fontSize: '14px', marginBottom: '20px' }}>
-              每次可以铸造 1 个 NFT
-            </p>
-
-            {/* 铸造按钮 */}
-            <button
-              onClick={handleMint}
-              disabled={loading}
-              style={{
-                padding: '15px 40px',
-                fontSize: '18px',
-                backgroundColor: '#1976d2',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.3s',
-              }}
-              onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#1565c0')}
-              onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#1976d2')}
-            >
-              {loading ? '铸造中...' : '铸造 NFT'}
-            </button>
-          </div>
-
-          {/* 底部 NFT 列表区域仅在持有 NFT 时展示 */}
-          {nftBalance > 0 && (
-            <div
-              style={{
-                marginTop: '40px',
-                paddingTop: '30px',
-                borderTop: '2px solid #e0e0e0',
-              }}
-            >
-              <h2
+              <div
                 style={{
-                  color: '#333',
-                  marginBottom: '20px',
-                  textAlign: 'center',
+                  padding: '18px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(102, 95, 255, 0.15), rgba(45, 167, 255, 0.12))',
+                  border: '1px solid rgba(125, 143, 255, 0.3)',
+                  boxShadow: '0 18px 45px rgba(32, 27, 72, 0.45)',
                 }}
               >
-                我的 NFT 列表 ({nftBalance}){/* 显示当前拥有的数量 */}
-              </h2>
+                <div style={{ fontSize: '12px', opacity: 0.75, letterSpacing: '0.08em', textTransform: 'uppercase' }}>当前账户</div>
+                <div style={{ fontSize: '15px', marginTop: '10px', wordBreak: 'break-all', color: '#d7ddff' }}>{account}</div>
+              </div>
+              <div
+                style={{
+                  padding: '18px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(111, 226, 190, 0.16), rgba(76, 165, 255, 0.12))',
+                  border: '1px solid rgba(120, 231, 207, 0.3)',
+                  boxShadow: '0 18px 45px rgba(22, 27, 68, 0.45)',
+                }}
+              >
+                <div style={{ fontSize: '12px', opacity: 0.75, letterSpacing: '0.08em', textTransform: 'uppercase' }}>持有 NFT 数量</div>
+                <div style={{ fontSize: '28px', fontWeight: 600, marginTop: '10px', color: '#e0fffb' }}>{nftBalance}</div>
+              </div>
+              <div
+                style={{
+                  padding: '18px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(252, 181, 108, 0.18), rgba(188, 103, 255, 0.16))',
+                  border: '1px solid rgba(255, 194, 131, 0.35)',
+                  boxShadow: '0 18px 45px rgba(41, 23, 58, 0.4)',
+                }}
+              >
+                <div style={{ fontSize: '12px', opacity: 0.75, letterSpacing: '0.08em', textTransform: 'uppercase' }}>合约总供应量</div>
+                <div style={{ fontSize: '28px', fontWeight: 600, marginTop: '10px', color: '#fff7e6' }}>{totalSupply}</div>
+              </div>
+            </div>
 
-              {/* 根据 loading 状态或列表长度给出不同提示 */}
-              {loadingNFTs ? (
-                <div
+            {/* 铸造操作区域 */}
+            <div
+              style={{
+                textAlign: 'center',
+                marginBottom: '40px',
+                padding: '32px 26px 36px',
+                borderRadius: '22px',
+                background: 'linear-gradient(140deg, rgba(38, 45, 82, 0.75), rgba(58, 65, 112, 0.68))',
+                border: '1px solid rgba(143, 155, 255, 0.25)',
+                boxShadow: '0 35px 65px rgba(7, 9, 18, 0.55)',
+              }}
+            >
+              {/* NFT 预览图区域 */}
+              <div
+                style={{
+                  width: '220px',
+                  height: '220px',
+                  borderRadius: '24px',
+                  margin: '0 auto 26px',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(148, 182, 255, 0.35)',
+                  boxShadow: '0 28px 55px rgba(24, 39, 65, 0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundImage: 'linear-gradient(135deg, rgba(96, 107, 236, 0.18), rgba(160, 83, 255, 0.18))',
+                }}
+              >
+                {imageError ? (
+                  // 当预览图加载失败时展示的占位内容
+                  <div style={{ color: '#9fbaff', fontSize: '20px', letterSpacing: '0.1em' }}>NFT 预览</div>
+                ) : (
+                  // 默认展示 1.jpg 作为示意图
+                  <img
+                    src={formatTokenUri('/img/1.jpg')}
+                    alt='NFT Preview'
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                    onError={() => setImageError(true)} // 加载失败时设置 imageError
+                  />
+                )}
+              </div>
+
+              {/* 铸造说明文字 */}
+              <h3 style={{ color: '#eff2ff', marginBottom: '12px', fontSize: '24px', letterSpacing: '0.02em' }}>铸造您的 NFT</h3>
+              <p style={{ color: '#a9b4df', fontSize: '14px', marginBottom: '26px', lineHeight: 1.6 }}>
+                只需一次点击，即可将全新数字藏品铸造至您的钱包。每次固定铸造 1 个，欢迎随时收藏。
+              </p>
+
+              {/* 铸造按钮 */}
+              <button
+                onClick={handleMint}
+                disabled={loading}
+                style={{
+                  padding: '16px 44px',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  background: loading
+                    ? 'linear-gradient(120deg, rgba(126, 136, 191, 0.55), rgba(98, 107, 148, 0.45))'
+                    : 'linear-gradient(120deg, #7a83ff, #a063ff, #ff77ba)',
+                  backgroundSize: '200% 200%',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '50px',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 23px 45px rgba(140, 102, 255, 0.45)',
+                  transition: 'all 0.35s ease',
+                  letterSpacing: '0.08em',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundPosition = '100% 0%';
+                    e.currentTarget.style.transform = 'translateY(-3px) scale(1.01)';
+                    e.currentTarget.style.boxShadow = '0 28px 65px rgba(140, 102, 255, 0.55)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundPosition = '0% 100%';
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.boxShadow = '0 23px 45px rgba(140, 102, 255, 0.45)';
+                }}
+              >
+                {loading ? '铸造中...' : '立即铸造 NFT'}
+              </button>
+            </div>
+
+            {/* 底部 NFT 列表区域仅在持有 NFT 时展示 */}
+            {nftBalance > 0 && (
+              <div
+                style={{
+                  marginTop: '10px',
+                  paddingTop: '30px',
+                  borderTop: '1px solid rgba(184, 198, 255, 0.18)',
+                }}
+              >
+                <h2
+                  style={{
+                    color: '#f2f5ff',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                    fontSize: '22px',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  我的 NFT 画廊（共 {nftBalance} 件）
+                </h2>
+                <p
                   style={{
                     textAlign: 'center',
-                    padding: '20px',
-                    color: '#666',
+                    color: '#98a6d9',
+                    marginBottom: '22px',
+                    fontSize: '13px',
+                    letterSpacing: '0.03em',
                   }}
                 >
-                  正在加载我的 NFT，请稍候...
-                </div>
-              ) : userNFTs.length === 0 ? (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    padding: '20px',
-                    color: '#666',
-                  }}
-                >
-                  暂未找到属于我的 NFT
-                </div>
-              ) : (
-                // 展示 NFT 卡片
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-                    gap: '20px',
-                    padding: '0 10px 10px',
-                  }}
-                >
-                  {userNFTs.map((nft) => (
-                    <div
-                      key={nft.tokenId} // 使用 tokenId 作为唯一标识
-                      style={{
-                        border: '2px solid #1976d2',
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        backgroundColor: '#fff',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-4px)'; // 鼠标悬浮时稍微上浮
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; // 改变阴影效果
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)'; // 悬浮结束恢复位置
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'; // 恢复原有阴影
-                      }}
-                    >
-                      {/* NFT 图片区域 */}
+                  每件作品均来自当前钱包实时查询，可点击查看元数据详情。
+                </p>
+
+                {/* 根据 loading 状态或列表长度给出不同提示 */}
+                {loadingNFTs ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '20px',
+                      color: '#9da8d8',
+                      background: 'rgba(47, 55, 95, 0.45)',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(114, 133, 209, 0.28)',
+                    }}
+                  >
+                    正在加载我的 NFT，请稍候...
+                  </div>
+                ) : userNFTs.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '20px',
+                      color: '#9da8d8',
+                      background: 'rgba(47, 55, 95, 0.45)',
+                      borderRadius: '14px',
+                      border: '1px solid rgba(114, 133, 209, 0.28)',
+                    }}
+                  >
+                    暂未找到属于我的 NFT
+                  </div>
+                ) : (
+                  // 展示 NFT 卡片
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+                      gap: '22px',
+                      padding: '8px 4px 4px',
+                    }}
+                  >
+                    {userNFTs.map((nft) => (
                       <div
+                        key={nft.tokenId} // 使用 tokenId 作为唯一标识
                         style={{
-                          width: '100%',
-                          height: '150px',
+                          borderRadius: '18px',
                           overflow: 'hidden',
-                          backgroundColor: '#e3f2fd',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          background: 'linear-gradient(145deg, rgba(34, 45, 85, 0.88), rgba(24, 30, 64, 0.92))',
+                          border: '1px solid rgba(148, 175, 255, 0.22)',
+                          boxShadow: '0 22px 45px rgba(8, 12, 28, 0.55)',
+                          transition: 'transform 0.28s ease, box-shadow 0.28s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-6px)';
+                          e.currentTarget.style.boxShadow = '0 28px 65px rgba(8, 12, 28, 0.68)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 22px 45px rgba(8, 12, 28, 0.55)';
                         }}
                       >
-                        {nft.tokenURI ? (
-                          <img
-                            src={formatTokenUri(nft.tokenURI)} // 使用辅助函数处理 URI
-                            alt={`NFT #${nft.tokenId}`}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                            }}
-                            onError={(e) => {
-                              e.target.style.display = 'none'; // 图片加载失败时隐藏 img
-                              e.target.parentElement.innerHTML = '<div style="color: #1976d2; font-size: 14px;">图片加载失败</div>'; // 替换成文字提示
-                            }}
-                          />
-                        ) : (
-                          <div style={{ color: '#1976d2', fontSize: '14px' }}>未设置图片</div>
-                        )}
-                      </div>
-
-                      {/* NFT 信息区域 */}
-                      <div
-                        style={{
-                          padding: '10px',
-                          textAlign: 'center',
-                          backgroundColor: '#f5f5f5',
-                        }}
-                      >
+                        {/* NFT 图片区域 */}
                         <div
                           style={{
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            color: '#333',
-                            marginBottom: '6px',
-                          }}
-                        >
-                          Token ID: {nft.tokenId}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            color: '#666',
-                            wordBreak: 'break-all',
+                            width: '100%',
+                            height: '170px',
+                            overflow: 'hidden',
+                            background: 'linear-gradient(135deg, rgba(123, 145, 255, 0.22), rgba(159, 118, 255, 0.24))',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
                           {nft.tokenURI ? (
-                            <a
-                              href={nft.tokenURI}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ color: '#1976d2', textDecoration: 'none' }}
-                            >
-                              查看元数据
-                            </a>
+                            <img
+                              src={formatTokenUri(nft.tokenURI)} // 使用辅助函数处理 URI
+                              alt={`NFT #${nft.tokenId}`}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = 'none'; // 图片加载失败时隐藏 img
+                                e.target.parentElement.innerHTML = '<div style="color: #a9b7ff; font-size: 14px;">图片加载失败</div>'; // 替换成文字提示
+                              }}
+                            />
                           ) : (
-                            '未找到 URI'
+                            <div style={{ color: '#a9b7ff', fontSize: '14px' }}>未设置图片</div>
                           )}
                         </div>
+
+                        {/* NFT 信息区域 */}
+                        <div
+                          style={{
+                            padding: '12px 16px 14px',
+                            textAlign: 'center',
+                            background: 'rgba(14, 18, 32, 0.78)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: '#e5e9ff',
+                              marginBottom: '6px',
+                            }}
+                          >
+                            Token ID: {nft.tokenId}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: '#9aa8da',
+                              wordBreak: 'break-all',
+                            }}
+                          >
+                            {nft.tokenURI ? (
+                              <a
+                                href={nft.tokenURI}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: '#7f9fff',
+                                  textDecoration: 'none',
+                                  transition: 'color 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.color = '#aebcff';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.color = '#7f9fff';
+                                }}
+                              >
+                                查看元数据
+                              </a>
+                            ) : (
+                              '未找到 URI'
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
