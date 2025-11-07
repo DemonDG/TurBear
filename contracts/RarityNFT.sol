@@ -20,21 +20,35 @@ contract RarityNFT is ERC721URIStorage, Ownable {
     }
     
     /**
-     * @dev 铸造NFT，使用默认图片1.jpg
+     * @dev 内部铸造工具函数：生成一个新的 tokenId 并返回
+     */
+    function _mintSingle(address to) internal returns (uint256 tokenId) {
+        tokenId = _tokenIdCounter;
+        _tokenIdCounter++;
+
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, defaultImageURI);
+
+        emit NFTMinted(to, tokenId);
+    }
+
+    /**
+     * @dev 铸造单个 NFT
      */
     function mint(address to) public returns (uint256) {
-        uint256 tokenId = _tokenIdCounter;
-        _tokenIdCounter++;
-        
-        // 铸造NFT
-        _safeMint(to, tokenId);
-        
-        // 设置token URI为默认图片
-        _setTokenURI(tokenId, defaultImageURI);
-        
-        emit NFTMinted(to, tokenId);
-        
-        return tokenId;
+        return _mintSingle(to);
+    }
+
+    /**
+     * @dev 批量铸造 NFT，数量限制 1-5
+     */
+    function mintBatch(address to, uint256 amount) public returns (uint256[] memory tokenIds) {
+        require(amount > 0 && amount <= 5, "amount must be between 1 and 5");
+
+        tokenIds = new uint256[](amount);
+        for (uint256 i = 0; i < amount; i++) {
+            tokenIds[i] = _mintSingle(to);
+        }
     }
     
     /**

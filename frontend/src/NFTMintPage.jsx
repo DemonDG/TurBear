@@ -11,7 +11,7 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
   const [account, setAccount] = useState(''); // 保存当前连接的钱包地址
   const [loading, setLoading] = useState(false); // 控制铸造按钮的加载状态，避免重复提交
   const [message, setMessage] = useState(''); // 展示给用户的提示信息（成功/失败等）
-  const [mintAmount, setMintAmount] = useState('1'); // 预留的铸造数量输入，目前默认为 1
+  const [mintAmount, setMintAmount] = useState('1'); // 记录用户希望一次铸造的 NFT 数量，默认 1
   const [nftBalance, setNftBalance] = useState(0); // 当前账户拥有的 NFT 数量
   const [totalSupply, setTotalSupply] = useState(0); // NFT 合约当前的总供应量
   const [imageError, setImageError] = useState(false); // 控制预览图加载失败时的兜底逻辑
@@ -77,6 +77,22 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
     }
   };
 
+  const handleMintAmountChange = (event) => { // 定义一个函数，用于限制铸造数量的输入范围
+    const { value } = event.target; // 取出输入框的值
+    if (value === '') { // 如果输入为空，允许用户暂时清空
+      setMintAmount('');
+      return;
+    }
+
+    const numericValue = parseInt(value, 10); // 将输入转为整数
+    if (Number.isNaN(numericValue)) { // 如果无法转换为数字，则不更新状态
+      return;
+    }
+
+    const clampedValue = Math.max(1, Math.min(5, numericValue)); // 将输入限制在 1 到 5 之间
+    setMintAmount(String(clampedValue)); // 将合法数值存入状态，并转成字符串
+  };
+
   useEffect(() => { // 页面首次渲染时自动执行，尝试连接钱包
     if (window.ethereum) { // 判断浏览器里是否注入了钱包（如 MetaMask）
       const p = new BrowserProvider(window.ethereum); // 创建浏览器 provider
@@ -136,9 +152,9 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
       return; // 直接返回
     }
 
-    const amount = parseInt(mintAmount); // 将输入的铸造数量转成数字
-    if (isNaN(amount) || amount <= 0) { // 简单校验数量
-      setMessage('请输入有效的铸造数量'); // 提示用户输入有误
+    const amount = parseInt(mintAmount, 10); // 将输入的铸造数量转成数字
+    if (Number.isNaN(amount) || amount < 1 || amount > 5) { // 再次校验数量，确保在 1-5 之间
+      setMessage('铸造数量需在 1 到 5 之间'); // 提示用户输入有误
       return; // 直接返回
     }
 
@@ -149,18 +165,20 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
       const nftContract = new Contract(NFT_CONTRACT_ADDRESS, RarityNFTABI, signer); // 构造合约实例
       const userAddress = await signer.getAddress(); // 获取当前账户地址
 
-      setMessage('正在发送交易...'); // 提示用户正在发送交易
+      setMessage('正在发送铸造交易...'); // 提示用户正在发送交易
+      const tx = amount === 1 // 根据数量决定调用单个或批量铸造
+        ? await nftContract.mint(userAddress)
+        : await nftContract.mintBatch(userAddress, amount);
 
-      const tx = await nftContract.mint(userAddress); // 调用合约的 mint 方法
-
-      setMessage('交易已发送，等待确认...'); // 提示交易已提交
+      setMessage('交易已发送，等待区块确认...'); // 提示交易已提交
       console.log('交易哈希:', tx.hash); // 控制台记录交易哈希
 
       const receipt = await tx.wait(); // 等待交易被链上确认
 
       if (receipt.status === 1) { // 交易成功
-        setMessage(`✅ 成功铸造 NFT！交易哈希: ${tx.hash}`); // 显示成功消息
+        setMessage(`✅ 成功铸造 ${amount} 个 NFT！交易哈希: ${tx.hash}`); // 显示成功消息
         await loadNFTData(signer); // 重新拉取最新的 NFT 数量
+        setMintAmount('1'); // 复位输入框，方便下一次操作
       } else { // 交易失败
         setMessage('❌ 交易失败'); // 显示失败提示
       }
@@ -337,6 +355,18 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
                 style={{
                   padding: '18px',
                   borderRadius: '16px',
+                  background: 'linear-gradient(135deg, rgba(80, 110, 255, 0.15), rgba(35, 210, 255, 0.12))',
+                  border: '1px solid rgba(110, 142, 255, 0.3)',
+                  boxShadow: '0 18px 45px rgba(25, 33, 78, 0.45)',
+                }}
+              >
+                <div style={{ fontSize: '12px', opacity: 0.75, letterSpacing: '0.08em', textTransform: 'uppercase' }}>NFT 合约地址</div>
+                <div style={{ fontSize: '15px', marginTop: '10px', wordBreak: 'break-all', color: '#dce9ff' }}>{NFT_CONTRACT_ADDRESS}</div>
+              </div>
+              <div
+                style={{
+                  padding: '18px',
+                  borderRadius: '16px',
                   background: 'linear-gradient(135deg, rgba(111, 226, 190, 0.16), rgba(76, 165, 255, 0.12))',
                   border: '1px solid rgba(120, 231, 207, 0.3)',
                   boxShadow: '0 18px 45px rgba(22, 27, 68, 0.45)',
@@ -408,8 +438,33 @@ export default function NFTMintPage() { // 定义并导出 NFT 铸造页面组�
               {/* 铸造说明文字 */}
               <h3 style={{ color: '#eff2ff', marginBottom: '12px', fontSize: '24px', letterSpacing: '0.02em' }}>铸造您的 NFT</h3>
               <p style={{ color: '#a9b4df', fontSize: '14px', marginBottom: '26px', lineHeight: 1.6 }}>
-                只需一次点击，即可将全新数字藏品铸造至您的钱包。每次固定铸造 1 个，欢迎随时收藏。
+                选择 1 - 5 个数量后，将直接调用合约批量铸造，多枚藏品会在一次交易中同步进入您的钱包。
               </p>
+
+              {/* 铸造数量输入框 */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                <span style={{ fontSize: '16px', color: '#9aa8da', marginRight: '10px' }}>铸造数量:</span>
+                <input
+                  type="number"
+                  value={mintAmount}
+                  onChange={handleMintAmountChange}
+                  min="1"
+                  max="5"
+                  style={{
+                    width: '60px',
+                    padding: '8px 12px',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    textAlign: 'center',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(120, 145, 255, 0.35)',
+                    background: 'rgba(120, 145, 255, 0.1)',
+                    color: '#fff',
+                    boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.1)',
+                  }}
+                />
+                <span style={{ fontSize: '16px', color: '#9aa8da', marginLeft: '10px' }}>个</span>
+              </div>
 
               {/* 铸造按钮 */}
               <button
