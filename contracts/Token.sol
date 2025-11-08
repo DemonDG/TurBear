@@ -2,10 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract BLToken is ERC20, Ownable {
-  constructor(address recipient, uint256 initialSupply) ERC20("BL Token", "BL") Ownable(msg.sender) {
+contract BLToken is ERC20 {
+  constructor(address recipient, uint256 initialSupply) ERC20("BL Token", "BL") {
     _mint(recipient, initialSupply);
   }
 

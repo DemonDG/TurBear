@@ -20,6 +20,10 @@ export default function HomePage() {
     navigate('/tracker');
   };
 
+  const handleLaunchpadClick = () => {
+    navigate('/launchpad');
+  };
+
   return (
     <div style={{
       maxWidth: 600,
@@ -108,6 +112,25 @@ export default function HomePage() {
           onMouseLeave={(e) => e.target.style.backgroundColor = '#673ab7'}
         >
           追踪币价
+        </button>
+
+        <button
+          onClick={handleLaunchpadClick}
+          style={{
+            padding: '15px 40px',
+            fontSize: '18px',
+            backgroundColor: '#009688',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            width: '300px',
+            transition: 'background-color 0.3s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#00796b'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#009688'}
+        >
+          进入 Launchpad 质押挖矿
         </button>
       </div>
     </div>

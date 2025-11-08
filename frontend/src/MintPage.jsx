@@ -12,7 +12,7 @@ export default function MintPage() {
   const [symbol, setSymbol] = useState('BL');
   const [decimals, setDecimals] = useState(18);
   const [balance, setBalance] = useState('0');
-  const [isOwner, setIsOwner] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(false);
   const [chainId, setChainId] = useState('');
   const [message, setMessage] = useState('');
@@ -92,16 +92,34 @@ export default function MintPage() {
 
   async function refresh() {
     if (!contract || !account) return;
-    const [sym, dec, bal, owner] = await Promise.all([
-      contract.symbol(),
-      contract.decimals(),
-      contract.balanceOf(account),
-      contract.owner(),
-    ]);
-    setSymbol(sym);
-    setDecimals(dec);
-    setBalance(formatUnits(bal, dec));
-    setIsOwner(owner.toLowerCase() === account.toLowerCase());
+    try {
+      const [sym, dec, bal] = await Promise.all([
+        contract.symbol(),
+        contract.decimals(),
+        contract.balanceOf(account),
+      ]);
+
+      setSymbol(sym);
+      setDecimals(Number(dec));
+      setBalance(formatUnits(bal, Number(dec)));
+
+      let ownerAddress = '';
+      if (typeof contract.owner === 'function') {
+        try {
+          ownerAddress = await contract.owner();
+        } catch (error) {
+          console.warn('获取 owner 失败，可能合约未继承 Ownable:', error);
+        }
+      }
+      if (ownerAddress) {
+        setIsOwner(ownerAddress.toLowerCase() === account.toLowerCase());
+      } else {
+        setIsOwner(false);
+      }
+    } catch (error) {
+      console.error('刷新余额失败:', error);
+      setMessage(error?.reason || error?.message || '读取代币信息失败');
+    }
   }
 
   async function onMint() {
@@ -169,7 +187,9 @@ export default function MintPage() {
           <div style={{ marginBottom: '10px' }}>合约: {CONTRACT_ADDRESS}</div>
           <div style={{ marginBottom: '10px' }}>网络: {chainId === '11155111' ? 'Sepolia' : chainId}</div>
           <div style={{ marginBottom: '10px' }}>余额: {balance} {symbol}</div>
-          <div style={{ marginBottom: '16px' }}>是否 Owner: {isOwner ? '是' : '否'}</div>
+          <div style={{ marginBottom: '16px' }}>
+            是否 Owner: {typeof contract?.owner === 'function' ? (isOwner ? '是' : '否') : '（合约未提供 owner）'}
+          </div>
           <div style={{ marginTop: 16 }}>
             <button 
               onClick={onMint} 

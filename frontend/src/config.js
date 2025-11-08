@@ -1,8 +1,14 @@
 // 将此地址替换为你在 Sepolia 部署的 BLToken 地址
-export const CONTRACT_ADDRESS = "0x9c33A009beA9b2684bDCEc81D28B9B84FAfF03C2";
+export const CONTRACT_ADDRESS = "0x73E416BE059B83A8d8FFcF024d024284ADbA0b88";
 
 // NFT合约地址
 export const NFT_CONTRACT_ADDRESS = "0x836c806A676f8C9BE701eD6358667A01564f0e03";
+
+// Launchpad 相关地址
+export const STAKE_TOKEN_ADDRESS = CONTRACT_ADDRESS; // 质押所需 ERC20
+export const STAKE_NFT_ADDRESS = NFT_CONTRACT_ADDRESS; // 质押的 NFT（沿用 RarityNFT）
+export const EARN_TOKEN_ADDRESS = "0xFD6cC095DCB8DEa7F8617040509B48DF23401b57"; // Earn Token 合约地址
+export const LAUNCHPAD_CONTRACT_ADDRESS = "0x4824Bd74fAD5CC7713d072BD27C13637044b1fdd"; // Launchpad Staking 地址
 
 // Alchemy API 相关配置（需替换为你自己的 API Key）
 export const ALCHEMY_API_KEY = "DiCHzKzfDPlCk2nNfi6n1"; // 请在此处填入真实的 Alchemy API Key
