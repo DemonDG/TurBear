@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'; // 引入 React Hook
-import { BrowserProvider, Contract, MaxUint256, formatUnits, parseUnits } from 'ethers'; // ethers.js 工具
-import { useNavigate } from 'react-router-dom'; // 导航 Hook
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { BrowserProvider, Contract, MaxUint256, formatUnits, parseUnits } from 'ethers';
+import { useNavigate } from 'react-router-dom';
 import {
   STAKE_TOKEN_ADDRESS,
   STAKE_NFT_ADDRESS,
   LAUNCHPAD_CONTRACT_ADDRESS,
-} from './config'; // 配置文件中的地址
-import LaunchpadStakingABI from './abi/LaunchpadStaking.json'; // Launchpad 合约 ABI
+  EARN_TOKEN_ADDRESS,
+} from './config';
+import LaunchpadStakingABI from './abi/LaunchpadStaking.json';
 
 const ERC20_ABI = [
   'function name() view returns (string)',
@@ -27,31 +28,36 @@ const ERC721_ABI = [
   'function totalSupply() view returns (uint256)',
 ];
 
-const NFT_WEIGHT = 300; // 与合约保持一致，用于前端展示
+const EARN_TOKEN_ABI = [
+  'function MAX_SUPPLY() view returns (uint256)',
+  'function totalSupply() view returns (uint256)',
+];
 
-export default function Launchpad() { // 定义 Launchpad 页面组件
-  const navigate = useNavigate(); // 用于返回首页
+const NFT_WEIGHT = 300;
 
-  const [provider, setProvider] = useState(null); // 保存浏览器 Provider
-  const [account, setAccount] = useState(''); // 当前钱包地址
-  const [connecting, setConnecting] = useState(false); // “连接钱包”按钮状态
-  const [message, setMessage] = useState(''); // 提示信息
-  const [actionLoading, setActionLoading] = useState(''); // 当前执行中的操作
+export default function Launchpad() {
+  const navigate = useNavigate();
 
-  const [stakeTokenInfo, setStakeTokenInfo] = useState({ // 代币信息
+  const [provider, setProvider] = useState(null);
+  const [account, setAccount] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [actionLoading, setActionLoading] = useState('');
+
+  const [stakeTokenInfo, setStakeTokenInfo] = useState({
     name: '',
     symbol: '',
     decimals: 18,
     balance: '0',
   });
 
-  const [nftInfo, setNftInfo] = useState({ // NFT 信息
+  const [nftInfo, setNftInfo] = useState({
     name: '',
     symbol: '',
     balance: 0,
   });
 
-  const [launchpadStats, setLaunchpadStats] = useState({ // 质押合约统计
+  const [launchpadStats, setLaunchpadStats] = useState({
     stakedTokens: '0',
     stakedNFTs: 0,
     pendingRewards: '0',
@@ -65,137 +71,33 @@ export default function Launchpad() { // 定义 Launchpad 页面组件
     nftWeightDisplay: '0',
   });
 
-const [stakeAmount, setStakeAmount] = useState(''); // 质押代币数量
-const [unstakeAmount, setUnstakeAmount] = useState(''); // 解除质押数量
-const [ownedNftIds, setOwnedNftIds] = useState([]); // 当前钱包持有的 NFT
-const [selectedStakeNftId, setSelectedStakeNftId] = useState(''); // 选择质押的 NFT
-const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择解除质押的 NFT
+  const [stakeAmount, setStakeAmount] = useState('');
+  const [unstakeAmount, setUnstakeAmount] = useState('');
+  const [ownedNftIds, setOwnedNftIds] = useState([]);
+  const [selectedStakeNftId, setSelectedStakeNftId] = useState('');
+  const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState('');
+  const [miningStats, setMiningStats] = useState({
+    totalAccrued: '0',
+    claimedSupply: '0',
+    pendingUnclaimed: '0',
+    maxSupply: '0',
+    progressPercent: '0',
+  });
 
-  const launchpadAddressLabel = useMemo(() => { // 格式化 Launchpad 合约地址
-    if (!LAUNCHPAD_CONTRACT_ADDRESS || LAUNCHPAD_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000') {
+  const progressPercentNumber = Number(miningStats.progressPercent || '0');
+  const progressBarWidth = Math.max(0, Math.min(100, progressPercentNumber));
+
+  const launchpadAddressLabel = useMemo(() => {
+    if (
+      !LAUNCHPAD_CONTRACT_ADDRESS ||
+      LAUNCHPAD_CONTRACT_ADDRESS === '0x0000000000000000000000000000000000000000'
+    ) {
       return '（部署后请在 config.js 填写 Launchpad 合约地址）';
     }
     return LAUNCHPAD_CONTRACT_ADDRESS;
   }, []);
 
-  useEffect(() => { // 初始检测浏览器钱包
-    if (window.ethereum) {
-      const browserProvider = new BrowserProvider(window.ethereum);
-      setProvider(browserProvider);
-
-      (async () => {
-        try {
-          const accounts = await browserProvider.send('eth_accounts', []);
-          if (accounts && accounts[0]) {
-            setAccount(accounts[0]);
-          }
-        } catch (error) {
-          console.error('自动连接钱包失败:', error);
-        }
-      })();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!window.ethereum) return;
-
-    const handleAccountsChanged = (accounts) => {
-      if (accounts && accounts[0]) {
-        setAccount(accounts[0]);
-      } else {
-        setMessage('已断开钱包连接');
-        setAccount('');
-        setStakeAmount('');
-        setUnstakeAmount('');
-        setOwnedNftIds([]);
-        setSelectedStakeNftId('');
-        setSelectedUnstakeNftId('');
-        setLaunchpadStats({
-          stakedTokens: '0',
-          stakedNFTs: 0,
-          pendingRewards: '0',
-          totalEarned: '0',
-          totalClaimed: '0',
-          stakedNFTIds: [],
-          userWeightRaw: '0',
-          totalWeightRaw: '0',
-          estimatedDailyReward: '0',
-          tokenWeightDisplay: '0',
-          nftWeightDisplay: '0',
-        });
-        setStakeTokenInfo({
-          name: '',
-          symbol: '',
-          decimals: 18,
-          balance: '0',
-        });
-        setNftInfo({
-          name: '',
-          symbol: '',
-          balance: 0,
-        });
-      }
-    };
-
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    return () => {
-      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-    };
-  }, [provider]);
-
-  useEffect(() => { // 当地址或 provider 发生变化时重新加载资产
-    if (!account || !provider) {
-      setStakeTokenInfo((prev) => ({ ...prev, balance: '0' }));
-      setNftInfo((prev) => ({ ...prev, balance: 0 }));
-      setLaunchpadStats({
-        stakedTokens: '0',
-        stakedNFTs: 0,
-        pendingRewards: '0',
-        totalEarned: '0',
-        totalClaimed: '0',
-        stakedNFTIds: [],
-      });
-      setOwnedNftIds([]);
-      setSelectedStakeNftId('');
-      setSelectedUnstakeNftId('');
-      return;
-    }
-
-    (async () => {
-      try {
-        const decimals = await loadStakeTokenInfo(account);
-        await loadNftInfo(account);
-        await loadLaunchpadData(account, decimals);
-      } catch (error) {
-        console.error('读取资产失败:', error);
-        setMessage('读取资产失败，请检查网络或稍后重试。');
-      }
-    })();
-  }, [account, provider]);
-
-  const connectWallet = async () => { // 手动连接钱包
-    if (!provider) {
-      setMessage('未检测到浏览器钱包，请先安装 MetaMask。');
-      return;
-    }
-
-    setConnecting(true);
-    setMessage('');
-
-    try {
-      const accounts = await provider.send('eth_requestAccounts', []);
-      if (accounts && accounts[0]) {
-        setAccount(accounts[0]);
-      }
-    } catch (error) {
-      console.error('连接钱包失败:', error);
-      setMessage('连接钱包失败，请在钱包中确认授权。');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const disconnectWallet = () => { // 断开钱包连接
+  const disconnectWallet = useCallback(() => {
     setMessage('已断开钱包连接');
     setAccount('');
     setStakeAmount('');
@@ -216,58 +118,30 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
       tokenWeightDisplay: '0',
       nftWeightDisplay: '0',
     });
-    setStakeTokenInfo({
-      name: '',
-      symbol: '',
-      decimals: 18,
-      balance: '0',
-    });
-    setNftInfo({
-      name: '',
-      symbol: '',
-      balance: 0,
-    });
-  };
+    setStakeTokenInfo({ name: '', symbol: '', decimals: 18, balance: '0' });
+    setNftInfo({ name: '', symbol: '', balance: 0 });
+  }, []);
 
-  const loadStakeTokenInfo = async (address) => { // 读取 ERC20 余额和基本信息
-    if (!provider) return;
-
-    const contract = new Contract(STAKE_TOKEN_ADDRESS, ERC20_ABI, provider);
-    const [name, symbol, decimals, balance] = await Promise.all([
-      contract.name(),
-      contract.symbol(),
-      contract.decimals(),
-      contract.balanceOf(address),
-    ]);
-
-    setStakeTokenInfo({
-      name,
-      symbol,
-      decimals: Number(decimals),
-      balance: formatUnits(balance, decimals),
-    });
-
-    return Number(decimals);
-  };
-
-  const loadNftInfo = async (address) => { // 读取 NFT 持仓数量
-    if (!provider) return;
-
-    const contract = new Contract(STAKE_NFT_ADDRESS, ERC721_ABI, provider);
-    const [name, symbol, balance] = await Promise.all([
-      contract.name(),
-      contract.symbol(),
-      contract.balanceOf(address),
-    ]);
-
-    setNftInfo({
-      name,
-      symbol,
-      balance: Number(balance),
-    });
-
-    await loadOwnedNftIds(address);
-  };
+  const loadStakeTokenInfo = useCallback(
+    async (address) => {
+      if (!provider) return 18;
+      const contract = new Contract(STAKE_TOKEN_ADDRESS, ERC20_ABI, provider);
+      const [name, symbol, decimals, balance] = await Promise.all([
+        contract.name(),
+        contract.symbol(),
+        contract.decimals(),
+        contract.balanceOf(address),
+      ]);
+      setStakeTokenInfo({
+        name,
+        symbol,
+        decimals: Number(decimals),
+        balance: formatUnits(balance, decimals),
+      });
+      return Number(decimals);
+    },
+    [provider]
+  );
 
   const loadOwnedNftIds = useCallback(
     async (address) => {
@@ -276,7 +150,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
         setSelectedStakeNftId('');
         return [];
       }
-
       try {
         const contract = new Contract(STAKE_NFT_ADDRESS, ERC721_ABI, provider);
         const totalSupply = await contract.totalSupply();
@@ -300,10 +173,24 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
     [provider]
   );
 
-  const loadLaunchpadData = useCallback(
-    async (address, decimalsOverride) => { // 读取 Launchpad 合约中的质押信息
-      if (!provider || !LAUNCHPAD_CONTRACT_ADDRESS) return;
+  const loadNftInfo = useCallback(
+    async (address) => {
+      if (!provider) return;
+      const contract = new Contract(STAKE_NFT_ADDRESS, ERC721_ABI, provider);
+      const [name, symbol, balance] = await Promise.all([
+        contract.name(),
+        contract.symbol(),
+        contract.balanceOf(address),
+      ]);
+      setNftInfo({ name, symbol, balance: Number(balance) });
+      await loadOwnedNftIds(address);
+    },
+    [provider, loadOwnedNftIds]
+  );
 
+  const loadLaunchpadData = useCallback(
+    async (address, decimalsOverride) => {
+      if (!provider || !LAUNCHPAD_CONTRACT_ADDRESS) return;
       const contract = new Contract(LAUNCHPAD_CONTRACT_ADDRESS, LaunchpadStakingABI.abi, provider);
       const [
         userInfoRaw,
@@ -322,7 +209,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
         contract.totalWeight(),
         contract.DAILY_REWARD(),
       ]);
-
       const decimals = decimalsOverride ?? 18;
       const userInfo =
         userInfoRaw && typeof userInfoRaw === 'object'
@@ -335,20 +221,13 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
               rewardPerWeightPaid: userInfoRaw?.[4] ?? 0n,
               claimed: userInfoRaw?.[5] ?? 0n,
             };
-
       const stakedTokensValue = userInfo.stakedTokens ?? userInfo[0] ?? 0n;
       const stakedNFTsValue = userInfo.stakedNFTs ?? userInfo[1] ?? 0n;
       const userWeightRawValue = BigInt(userInfo.weight ?? userInfo[2] ?? 0n);
       const totalWeightValue = BigInt(totalWeightRawValue ?? 0n);
       const dailyRewardRaw = BigInt(dailyRewardValue ?? 0n);
-      const estimatedDailyRaw =
-        totalWeightValue > 0n ? (userWeightRawValue * dailyRewardRaw) / totalWeightValue : 0n;
-
-      const tokenWeightDisplay = formatUnits(stakedTokensValue, decimals);
-      const nftWeightDisplay = Number(stakedNFTsValue ?? 0n) * NFT_WEIGHT;
-
+      const estimatedDailyRaw = totalWeightValue > 0n ? (userWeightRawValue * dailyRewardRaw) / totalWeightValue : 0n;
       const stakedIdStrings = stakedIds.map((id) => id.toString());
-
       setLaunchpadStats({
         stakedTokens: formatUnits(stakedTokensValue, decimals),
         stakedNFTs: Number(stakedNFTsValue ?? 0n),
@@ -359,29 +238,144 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
         userWeightRaw: userWeightRawValue.toString(),
         totalWeightRaw: totalWeightValue.toString(),
         estimatedDailyReward: formatUnits(estimatedDailyRaw, 18),
-        tokenWeightDisplay,
-        nftWeightDisplay: nftWeightDisplay.toString(),
+        tokenWeightDisplay: formatUnits(stakedTokensValue, decimals),
+        nftWeightDisplay: (Number(stakedNFTsValue ?? 0n) * NFT_WEIGHT).toString(),
       });
       setSelectedUnstakeNftId((prev) => (prev && stakedIdStrings.includes(prev) ? prev : stakedIdStrings[0] ?? ''));
     },
     [provider]
   );
 
-  useEffect(() => { // 定时刷新待领取奖励等数据
+  const loadMiningStats = useCallback(async () => {
+    if (!provider || !LAUNCHPAD_CONTRACT_ADDRESS || !EARN_TOKEN_ADDRESS) return;
+    try {
+      const launchpad = new Contract(LAUNCHPAD_CONTRACT_ADDRESS, LaunchpadStakingABI.abi, provider);
+      const earnToken = new Contract(EARN_TOKEN_ADDRESS, EARN_TOKEN_ABI, provider);
+      const [totalAccruedRaw, totalClaimedRaw, totalPendingRaw, maxSupplyRaw] = await Promise.all([
+        launchpad.totalRewardsAccrued(),
+        launchpad.totalRewardsClaimed(),
+        launchpad.totalRewardsPending(),
+        earnToken.MAX_SUPPLY(),
+      ]);
+      const progressPercentRaw = maxSupplyRaw > 0n ? Number((totalAccruedRaw * 10000n) / maxSupplyRaw) / 100 : 0;
+      setMiningStats({
+        totalAccrued: formatUnits(totalAccruedRaw, 18),
+        claimedSupply: formatUnits(totalClaimedRaw, 18),
+        pendingUnclaimed: formatUnits(totalPendingRaw, 18),
+        maxSupply: formatUnits(maxSupplyRaw, 18),
+        progressPercent: progressPercentRaw.toFixed(2),
+      });
+    } catch (error) {
+      console.error('加载挖矿进度失败:', error);
+    }
+  }, [provider]);
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+    const browserProvider = new BrowserProvider(window.ethereum);
+    setProvider(browserProvider);
+    (async () => {
+      try {
+        const accounts = await browserProvider.send('eth_accounts', []);
+        if (accounts && accounts[0]) {
+          setAccount(accounts[0]);
+        }
+      } catch (error) {
+        console.error('自动连接钱包失败:', error);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+    const handleAccountsChanged = (accounts) => {
+      if (accounts && accounts[0]) {
+        setAccount(accounts[0]);
+      } else {
+        disconnectWallet();
+      }
+    };
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    return () => {
+      window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+    };
+  }, [disconnectWallet]);
+
+  useEffect(() => {
+    if (!provider) return;
+    loadMiningStats();
+  }, [provider, loadMiningStats]);
+
+  useEffect(() => {
+    if (!account || !provider) {
+      setStakeTokenInfo((prev) => ({ ...prev, balance: '0' }));
+      setNftInfo((prev) => ({ ...prev, balance: 0 }));
+      setLaunchpadStats((prev) => ({
+        ...prev,
+        stakedTokens: '0',
+        stakedNFTs: 0,
+        pendingRewards: '0',
+        totalEarned: '0',
+        totalClaimed: '0',
+        stakedNFTIds: [],
+      }));
+      setOwnedNftIds([]);
+      setSelectedStakeNftId('');
+      setSelectedUnstakeNftId('');
+      return;
+    }
+    (async () => {
+      try {
+        const decimals = await loadStakeTokenInfo(account);
+        await Promise.all([
+          loadNftInfo(account),
+          loadLaunchpadData(account, decimals),
+          loadOwnedNftIds(account),
+          loadMiningStats(),
+        ]);
+      } catch (error) {
+        console.error('读取资产失败:', error);
+        setMessage('读取资产失败，请检查网络或稍后重试。');
+      }
+    })();
+  }, [account, provider, loadStakeTokenInfo, loadNftInfo, loadLaunchpadData, loadOwnedNftIds, loadMiningStats]);
+
+  useEffect(() => {
     if (!account || !provider) return;
-
     const decimals = stakeTokenInfo.decimals ?? 18;
-
     const intervalId = setInterval(() => {
-      loadLaunchpadData(account, decimals).catch((error) => {
-        console.error('定时刷新 Launchpad 数据失败:', error);
+      Promise.all([
+        loadLaunchpadData(account, decimals),
+        loadOwnedNftIds(account),
+        loadMiningStats(),
+      ]).catch((error) => {
+        console.error('定时刷新失败:', error);
       });
     }, 15000);
-
     return () => clearInterval(intervalId);
-  }, [account, provider, stakeTokenInfo.decimals, loadLaunchpadData]);
+  }, [account, provider, stakeTokenInfo.decimals, loadLaunchpadData, loadOwnedNftIds, loadMiningStats]);
 
-  const getSignerAndContracts = async () => { // 获取 signer 与常用合约实例
+  const connectWallet = async () => {
+    if (!provider) {
+      setMessage('未检测到浏览器钱包，请先安装 MetaMask。');
+      return;
+    }
+    setConnecting(true);
+    setMessage('');
+    try {
+      const accounts = await provider.send('eth_requestAccounts', []);
+      if (accounts && accounts[0]) {
+        setAccount(accounts[0]);
+      }
+    } catch (error) {
+      console.error('连接钱包失败:', error);
+      setMessage('连接钱包失败，请在钱包中确认授权。');
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const getSignerAndContracts = async () => {
     if (!provider) throw new Error('尚未检测到钱包 Provider');
     if (!account) throw new Error('请先连接钱包');
     if (!LAUNCHPAD_CONTRACT_ADDRESS) throw new Error('Launchpad 合约地址无效');
@@ -392,25 +386,27 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
     return { signer, launchpad, stakeToken, stakeNft };
   };
 
-  const refreshAll = async () => { // 刷新所有链上数据
+  const refreshAll = async () => {
     if (!account) return;
     const decimals = await loadStakeTokenInfo(account);
-    await Promise.all([loadNftInfo(account), loadLaunchpadData(account, decimals)]);
+    await Promise.all([
+      loadNftInfo(account),
+      loadLaunchpadData(account, decimals),
+      loadOwnedNftIds(account),
+      loadMiningStats(),
+    ]);
   };
 
-  const handleStakeTokens = async () => { // 质押 ERC20 代币
+  const handleStakeTokens = async () => {
     if (!stakeAmount) {
       setMessage('请输入要质押的代币数量');
       return;
     }
-
     try {
       setActionLoading('stakeToken');
       setMessage('正在提交代币质押交易...');
-
       const amountWei = parseUnits(stakeAmount, stakeTokenInfo.decimals || 18);
       const { launchpad, stakeToken } = await getSignerAndContracts();
-
       const allowance = await stakeToken.allowance(account, LAUNCHPAD_CONTRACT_ADDRESS);
       if (allowance < amountWei) {
         setMessage('检测到代币授权不足，正在发起授权交易...');
@@ -420,11 +416,9 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
         setActionLoading('');
         return;
       }
-
       setMessage('授权完成，正在发起质押交易...');
       const tx = await launchpad.stakeTokens(amountWei);
       await tx.wait();
-
       setMessage('✅ 代币质押成功！');
       setStakeAmount('');
       await refreshAll();
@@ -436,21 +430,18 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
     }
   };
 
-  const handleUnstakeTokens = async () => { // 解除质押 ERC20 代币
+  const handleUnstakeTokens = async () => {
     if (!unstakeAmount) {
       setMessage('请输入要解除质押的代币数量');
       return;
     }
-
     try {
       setActionLoading('unstakeToken');
       setMessage('正在提交解除质押交易...');
-
       const amountWei = parseUnits(unstakeAmount, stakeTokenInfo.decimals || 18);
       const { launchpad } = await getSignerAndContracts();
       const tx = await launchpad.unstakeTokens(amountWei);
       await tx.wait();
-
       setMessage('✅ 解除质押成功！');
       setUnstakeAmount('');
       await refreshAll();
@@ -462,30 +453,25 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
     }
   };
 
-  const handleStakeNFT = async () => { // 质押 NFT
+  const handleStakeNFT = async () => {
     if (!selectedStakeNftId) {
       setMessage('当前没有可质押的 NFT');
       return;
     }
-
     try {
       setActionLoading('stakeNFT');
       setMessage('正在准备质押 NFT...');
-
       const tokenId = BigInt(selectedStakeNftId);
       const { launchpad, stakeNft } = await getSignerAndContracts();
-
       const approved = await stakeNft.isApprovedForAll(account, LAUNCHPAD_CONTRACT_ADDRESS);
       if (!approved) {
         setMessage('尚未授权 Launchpad 管理 NFT，正在发送授权交易...');
         const approveTx = await stakeNft.setApprovalForAll(LAUNCHPAD_CONTRACT_ADDRESS, true);
         await approveTx.wait();
       }
-
       setMessage('授权完成，正在发起 NFT 质押交易...');
       const tx = await launchpad.stakeNFT(tokenId);
       await tx.wait();
-
       setMessage('✅ NFT 质押成功！');
       await refreshAll();
     } catch (error) {
@@ -496,21 +482,18 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
     }
   };
 
-  const handleUnstakeNFT = async () => { // 解除质押 NFT
+  const handleUnstakeNFT = async () => {
     if (!selectedUnstakeNftId) {
       setMessage('当前没有可解除质押的 NFT');
       return;
     }
-
     try {
       setActionLoading('unstakeNFT');
       setMessage('正在发起解除 NFT 质押交易...');
-
       const tokenId = BigInt(selectedUnstakeNftId);
       const { launchpad } = await getSignerAndContracts();
       const tx = await launchpad.unstakeNFT(tokenId);
       await tx.wait();
-
       setMessage('✅ NFT 已解除质押！');
       await refreshAll();
     } catch (error) {
@@ -521,31 +504,13 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
     }
   };
 
-  const handleClaimRewards = async () => { // 领取奖励
-    try {
-      setActionLoading('claim');
-      setMessage('正在发起领取奖励交易...');
-
-      const { launchpad } = await getSignerAndContracts();
-      const tx = await launchpad.claim();
-      await tx.wait();
-
-      setMessage('✅ 奖励领取成功！');
-      await refreshAll();
-    } catch (error) {
-      console.error('领取奖励失败:', error);
-      setMessage(error?.reason || error?.message || '领取奖励失败，请稍后重试。');
-    } finally {
-      setActionLoading('');
-    }
-  };
-
   return (
     <div
       style={{
         minHeight: '100vh',
         padding: '60px 24px',
-        background: 'radial-gradient(circle at 10% 20%, rgba(80, 136, 255, 0.22), transparent 60%), radial-gradient(circle at 85% 15%, rgba(168, 82, 255, 0.25), transparent 55%), linear-gradient(135deg, #070b1d 0%, #0d1433 52%, #05060d 100%)',
+        background:
+          'radial-gradient(circle at 10% 20%, rgba(80, 136, 255, 0.22), transparent 60%), radial-gradient(circle at 85% 15%, rgba(168, 82, 255, 0.25), transparent 55%), linear-gradient(135deg, #070b1d 0%, #0d1433 52%, #05060d 100%)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'flex-start',
@@ -562,7 +527,7 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
           border: '1px solid rgba(255, 255, 255, 0.08)',
           boxShadow: '0 32px 110px rgba(12, 15, 45, 0.6)',
           color: '#f1f4ff',
-          backdropFilter: 'blur(22px)'
+          backdropFilter: 'blur(22px)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '30px' }}>
@@ -610,7 +575,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
           <div style={{ marginBottom: '20px', color: '#98a6d9', letterSpacing: '0.02em' }}>{message}</div>
         )}
 
-        {/* 钱包连接状态 */}
         <div
           style={{
             marginBottom: '26px',
@@ -649,18 +613,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
               fontWeight: 600,
               transition: 'all 0.3s ease',
             }}
-            onMouseEnter={(e) => {
-              if (connecting) return;
-              e.currentTarget.style.transform = 'translateY(-3px)';
-              e.currentTarget.style.boxShadow = account
-                ? '0 20px 45px rgba(255, 140, 160, 0.45)'
-                : '0 20px 45px rgba(108, 131, 255, 0.45)';
-            }}
-            onMouseLeave={(e) => {
-              if (connecting) return;
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
             onClick={account ? disconnectWallet : connectWallet}
             disabled={connecting}
           >
@@ -668,7 +620,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
           </button>
         </div>
 
-        {/* Launchpad 合约地址提示 */}
         <div
           style={{
             marginBottom: '26px',
@@ -684,13 +635,66 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
 
         <div
           style={{
+            marginBottom: '24px',
+            padding: '24px',
+            borderRadius: '20px',
+            background: 'linear-gradient(140deg, rgba(36, 54, 124, 0.82), rgba(14, 22, 52, 0.78))',
+            border: '1px solid rgba(120, 150, 255, 0.35)',
+            boxShadow: '0 24px 60px rgba(8, 12, 32, 0.55)',
+            color: '#e3ecff',
+          }}
+        >
+          <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>挖矿进度</h2>
+          <div style={{ marginBottom: '16px', fontSize: '14px', color: '#c7d7ff' }}>
+            Launchpad 合约地址：{LAUNCHPAD_CONTRACT_ADDRESS}
+          </div>
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '14px',
+              borderRadius: '999px',
+              background: 'rgba(80, 120, 200, 0.2)',
+              overflow: 'hidden',
+              marginBottom: '14px',
+            }}
+          >
+            <div
+              style={{
+                width: `${progressBarWidth}%`,
+                height: '100%',
+                background: 'linear-gradient(120deg, #49f2ff, #7d8bff)',
+                transition: 'width 0.4s ease',
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: '18px', fontSize: '13px', color: '#b4c6ff' }}>
+            当前挖矿进度：{miningStats.progressPercent}% （含未领取部分）
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '16px',
+              fontSize: '14px',
+              color: '#d0ddff',
+            }}
+          >
+            <div>累计产生（含未领取）：{miningStats.totalAccrued} EARN</div>
+            <div>已领取（已增发）：{miningStats.claimedSupply} EARN</div>
+            <div>尚未领取：{miningStats.pendingUnclaimed} EARN</div>
+            <div>最大供应量上限：{miningStats.maxSupply} EARN</div>
+          </div>
+        </div>
+
+        <div
+          style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
             gap: '24px',
             marginBottom: '28px',
           }}
         >
-          {/* 代币质押侧 */}
           <div
             style={{
               padding: '24px',
@@ -808,7 +812,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
             </div>
           </div>
 
-          {/* NFT 质押侧 */}
           <div
             style={{
               padding: '24px',
@@ -940,7 +943,6 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
           </div>
         </div>
 
-        {/* 奖励与权重总览 */}
         <div
           style={{
             marginBottom: '24px',
@@ -957,7 +959,22 @@ const [selectedUnstakeNftId, setSelectedUnstakeNftId] = useState(''); // 选择�
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: '20px', color: '#e5ebff' }}>奖励中心</h2>
             <button
-              onClick={handleClaimRewards}
+              onClick={async () => {
+                try {
+                  setActionLoading('claim');
+                  setMessage('正在发起领取奖励交易...');
+                  const { launchpad } = await getSignerAndContracts();
+                  const tx = await launchpad.claim();
+                  await tx.wait();
+                  setMessage('✅ 奖励领取成功！');
+                  await refreshAll();
+                } catch (error) {
+                  console.error('领取奖励失败:', error);
+                  setMessage(error?.reason || error?.message || '领取奖励失败，请稍后重试。');
+                } finally {
+                  setActionLoading('');
+                }
+              }}
               disabled={actionLoading === 'claim'}
               style={{
                 padding: '12px 28px',

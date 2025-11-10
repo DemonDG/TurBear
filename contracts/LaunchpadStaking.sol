@@ -28,6 +28,8 @@ contract LaunchpadStaking is IERC721Receiver, Ownable {
     uint256 public totalWeight; // 全局权重和
     uint256 public lastUpdateTime; // 最近一次更新时间
     uint256 public rewardPerWeightStored; // 全局累计奖励（按权重）
+    uint256 public totalAccruedRewards; // 全局已累计产生的奖励（包含未领取）
+    uint256 public totalClaimedRewards; // 全局已领取的奖励
 
     struct UserInfo {
         uint256 stakedTokens; // 质押的 ERC20 数量
@@ -61,6 +63,10 @@ contract LaunchpadStaking is IERC721Receiver, Ownable {
     }
 
     modifier updateReward(address account) {
+        uint256 pendingGlobal = _pendingGlobalReward();
+        if (pendingGlobal > 0) {
+            totalAccruedRewards += pendingGlobal;
+        }
         rewardPerWeightStored = rewardPerWeight();
         lastUpdateTime = block.timestamp;
         if (account != address(0)) {
@@ -78,6 +84,14 @@ contract LaunchpadStaking is IERC721Receiver, Ownable {
         uint256 timeDelta = block.timestamp - lastUpdateTime;
         uint256 additional = (timeDelta * REWARD_RATE * 1e18) / totalWeight;
         return rewardPerWeightStored + additional;
+    }
+
+    function _pendingGlobalReward() internal view returns (uint256) {
+        if (totalWeight == 0) {
+            return 0;
+        }
+        uint256 timeDelta = block.timestamp - lastUpdateTime;
+        return timeDelta * REWARD_RATE;
     }
 
     function earned(address account) public view returns (uint256) {
@@ -138,6 +152,7 @@ contract LaunchpadStaking is IERC721Receiver, Ownable {
         require(reward > 0, "no rewards");
         user.rewards = 0;
         user.claimed += reward;
+        totalClaimedRewards += reward;
         rewardToken.mint(msg.sender, reward);
         emit RewardPaid(msg.sender, reward);
     }
@@ -201,5 +216,21 @@ contract LaunchpadStaking is IERC721Receiver, Ownable {
 
     function getUserInfo(address account) external view returns (UserInfo memory) {
         return userInfo[account];
+    }
+
+    function totalRewardsAccrued() public view returns (uint256) {
+        return totalAccruedRewards + _pendingGlobalReward();
+    }
+
+    function totalRewardsClaimed() external view returns (uint256) {
+        return totalClaimedRewards;
+    }
+
+    function totalRewardsPending() external view returns (uint256) {
+        uint256 accrued = totalRewardsAccrued();
+        if (accrued > totalClaimedRewards) {
+            return accrued - totalClaimedRewards;
+        }
+        return 0;
     }
 }
